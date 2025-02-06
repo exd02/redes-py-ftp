@@ -27,13 +27,16 @@ msg = input()
 try:
     while msg != '\x18':
         args = msg.split()
+
+        # variavel pra saber se o server vai retornar resposta no final
+        serverMessage = True
+
         if args[0] == "enviar" and len(args) == 2:
             caminho_arquivo = args[1]
             if os.path.exists(caminho_arquivo):
                 udp_socket.sendto(msg.encode("utf-8"), (HOST, PORT_UDP))
                 time.sleep(1)
                 
-                # Criar socket TCP antes de conectar
                 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 tcp_socket.connect((HOST, PORT_TCP))
                 enviar_arquivo_tcp(tcp_socket, caminho_arquivo)
@@ -41,11 +44,10 @@ try:
                 time.sleep(1)
             else:
                 print("Arquivo não existe.")
+                serverMessage = False
         elif args[0] == "download" and len(args) == 2:
             udp_socket.sendto(msg.encode("utf-8"), (HOST, PORT_UDP))
-            time.sleep(1)
 
-            # Criar novo socket TCP antes de conectar
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp_socket.connect((HOST, PORT_TCP))
             receber_arquivo_tcp(tcp_socket, args[1])
@@ -53,8 +55,9 @@ try:
         else:
             udp_socket.sendto(msg.encode("utf-8"), (HOST, PORT_UDP))
 
-        data, _ = udp_socket.recvfrom(BUFFER_SIZE)
-        print(json.loads(data.decode('utf-8')))
+        if serverMessage:
+            data, _ = udp_socket.recvfrom(BUFFER_SIZE)
+            print(json.loads(data.decode('utf-8')))
         msg = input()
 finally:
     udp_socket.close()
